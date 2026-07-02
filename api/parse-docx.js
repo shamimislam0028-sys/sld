@@ -45,39 +45,39 @@ function ommlToLatex(xml) {
     prev = s;
 
     s = s.replace(
-      		/<m:f(?:\s[^>]*)?>(?:\s|<m:fPr[\s\S]*?<\/m:fPr>|<m:fPr[^>]*\/>)*<m:num(?:\s[^>]*)?>([\s\S]*?)<\/m:num>(?:\s|<[^>]+>)*<m:den(?:\s[^>]*)?>([\s\S]*?)<\/m:den>[\s\S]*?<\/m:f>/g,
-      		(_, num, den) => `\\frac{${ommlToLatex(num)}}{${ommlToLatex(den)}}`
+      /<m:f(?:\s[^>]*)?>(?:\s|<m:fPr[\s\S]*?<\/m:fPr>|<m:fPr[^>]*\/>)*<m:num(?:\s[^>]*)?>([\s\S]*?)<\/m:num>(?:\s|<[^>]+>)*<m:den(?:\s[^>]*)?>([\s\S]*?)<\/m:den>[\s\S]*?<\/m:f>/g,
+      (_, num, den) => `\\frac{${ommlToLatex(num)}}{${ommlToLatex(den)}}`
     );
 
     s = s.replace(
-      		/<m:rad(?:\s[^>]*)?>(?:\s|<m:radPr[\s\S]*?<\/m:radPr>|<m:radPr[^>]*\/>)*(?:<m:deg(?:\s[^>]*)?>([\s\S]*?)<\/m:deg>|<m:deg(?:\s[^>]*)?\/>)(?:\s|<[^>]+>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>[\s\S]*?<\/m:rad>/g,
-      		(_, deg = '', body) => {
+      /<m:rad(?:\s[^>]*)?>(?:\s|<m:radPr[\s\S]*?<\/m:radPr>|<m:radPr[^>]*\/>)*(?:<m:deg(?:\s[^>]*)?>([\s\S]*?)<\/m:deg>|<m:deg(?:\s[^>]*)?\/>)(?:\s|<[^>]+>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>[\s\S]*?<\/m:rad>/g,
+      (_, deg = '', body) => {
         const d = cleanOmmlPart(deg);
         return d ? `\\sqrt[${d}]{${ommlToLatex(body)}}` : `\\sqrt{${ommlToLatex(body)}}`;
-      		}
+      }
     );
 
     s = s.replace(
-      		/<m:sSup(?:\s[^>]*)?>(?:\s|<m:sSupPr[\s\S]*?<\/m:sSupPr>|<m:sSupPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sup(?:\s[^>]*)?>([\s\S]*?)<\/m:sup>[\s\S]*?<\/m:sSup>/g,
-      		(_, base, exp) => `${ommlToLatex(base)}^{${ommlToLatex(exp)}}`
+      /<m:sSup(?:\s[^>]*)?>(?:\s|<m:sSupPr[\s\S]*?<\/m:sSupPr>|<m:sSupPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sup(?:\s[^>]*)?>([\s\S]*?)<\/m:sup>[\s\S]*?<\/m:sSup>/g,
+      (_, base, exp) => `${ommlToLatex(base)}^{${ommlToLatex(exp)}}`
     );
 
     s = s.replace(
-      		/<m:sSub(?:\s[^>]*)?>(?:\s|<m:sSubPr[\s\S]*?<\/m:sSubPr>|<m:sSubPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sub(?:\s[^>]*)?>([\s\S]*?)<\/m:sub>[\s\S]*?<\/m:sSub>/g,
-      		(_, base, sub) => `${ommlToLatex(base)}_{${ommlToLatex(sub)}}`
+      /<m:sSub(?:\s[^>]*)?>(?:\s|<m:sSubPr[\s\S]*?<\/m:sSubPr>|<m:sSubPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sub(?:\s[^>]*)?>([\s\S]*?)<\/m:sub>[\s\S]*?<\/m:sSub>/g,
+      (_, base, sub) => `${ommlToLatex(base)}_{${ommlToLatex(sub)}}`
     );
 
     s = s.replace(
-      		/<m:sSubSup(?:\s[^>]*)?>(?:\s|<m:sSubSupPr[\s\S]*?<\/m:sSubSupPr>|<m:sSubSupPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sub(?:\s[^>]*)?>([\s\S]*?)<\/m:sub>(?:\s|<[^>]+>)*<m:sup(?:\s[^>]*)?>([\s\S]*?)<\/m:sup>[\s\S]*?<\/m:sSubSup>/g,
-      		(_, base, sub, sup) => `${ommlToLatex(base)}_{${ommlToLatex(sub)}}^{${ommlToLatex(sup)}}`
+      /<m:sSubSup(?:\s[^>]*)?>(?:\s|<m:sSubSupPr[\s\S]*?<\/m:sSubSupPr>|<m:sSubSupPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sub(?:\s[^>]*)?>([\s\S]*?)<\/m:sub>(?:\s|<[^>]+>)*<m:sup(?:\s[^>]*)?>([\s\S]*?)<\/m:sup>[\s\S]*?<\/m:sSubSup>/g,
+      (_, base, sub, sup) => `${ommlToLatex(base)}_{${ommlToLatex(sub)}}^{${ommlToLatex(sup)}}`
     );
 
     s = s.replace(
-      		/<m:d(?:\s[^>]*)?>([\s\S]*?)<\/m:d>/g,
-      		(_, inner) => {
+      /<m:d(?:\s[^>]*)?>([\s\S]*?)<\/m:d>/g,
+      (_, inner) => {
         const e = inner.match(/<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>/);
         return `(${ommlToLatex(e ? e[1] : inner)})`;
-      		}
+      }
     );
 
     s = s.replace(/<m:acc(?:\s[^>]*)?>([\s\S]*?)<\/m:acc>/g, (_, inner) => {
@@ -160,7 +160,7 @@ const OPT = {
 const INLINE_OPT = /[(\[]?([A-Da-dক-ঘ১-৪])\s*[.)\]\u0964\-]\s+/g;
 const ANS = /^(?:Correct\s*Option|Correct|Answer|Ans|উত্তর|সঠিক\s*উত্তর|সঠিক)\s*[:.\-।]?\s*([A-Da-dক-ঘ১-৪])/i;
 const NUMQ = /^(?:Question\s*[\d০-৯]+|[Qq](?:\.|uestion)?\s*[\d০-৯]+|[\d০-৯]+\s*[.)\]\u0964]|\([\d০-৯]+\)|\[[\d০-৯]+\])/;
-const ROMAN = /^\s*(?:[ivxlcdm]+)\s*[.)]\s+/i;
+const ROMAN = /^(?:\s*|[(ঁঁ]*)([ivxlcdm]+|[i০-৯]+)\s*[.)\]\u0964\-]/i; // i. ii. iii. matching
 const PASSAGE = /(উদ্দীপক|অনুচ্ছেদ|দৃশ্যকল্প|উদ্ধৃত(?:াংশ)?|কবিতাংশ|চিত্র|চিত্রে|নিচের\s*|নিচের\s*.*(?:পড়|লক্ষ)|প্রশ্নের?\s*উত্তর\s*দাও)/;
 
 function getOptionLetter(line) {
@@ -193,7 +193,7 @@ function getCorrect(line) {
   return m ? normLetter(m[1]) : null;
 }
 
-// ─── PARSER WITH FIXED MULTI-PART QUESTION BUG ───
+// ─── UPDATED PARSER WITH MULTI-LINE STEM & ROMAN INDEX SUPPORT ───
 function parseParagraphsToMcqs(lineData) {
   const mcqs = [];
   let cur = null;
@@ -224,8 +224,7 @@ function parseParagraphsToMcqs(lineData) {
     }
 
     // 2) NUMBERED question start
-    // "নিচের কোনটি সঠিক" বা "কোনটি সঠিক" থাকলে তাকে নতুন প্রশ্নের স্টার্ট হিসেবে গণ্য করা যাবে না।
-    const isStemContinuation = line.includes('কোনটি সঠিক') || line.includes('নিচের কোনটি');
+    const isStemContinuation = line.includes('কোনটি সঠিক') || line.includes('নিচের কোনটি') || ROMAN.test(line);
     const numberedByStyle = !!obj.isNumbered && !getOptionLetter(line) && !isStemContinuation;
     const numberedByText = NUMQ.test(line) && !ROMAN.test(line) && !isStemContinuation;
     
@@ -277,19 +276,24 @@ function parseParagraphsToMcqs(lineData) {
       continue;
     }
 
-    // 6) continuation of the current question stem (roman indices, "নিচের কোনটি সঠিক?" text etc.)
+    // 6) Continuation of the current question stem (রোমান সংখ্যা এবং "নিচের কোনটি সঠিক" সব একসাথে জুড়বে)
     if (cur && !hasOpts(cur)) {
-      cur.question = cur.question ? cur.question + ' ' + line : line;
+      cur.question = cur.question ? cur.question + ' \n ' + line : line;
       continue;
     }
 
     // 7) fallback — orphan line handling
     if (!hasOpts(cur) && !inPassage) {
-      flush();
-      if (!PASSAGE.test(line) && !line.includes('নং') && !isStemContinuation) {
-        pending = '';
+      // যদি লাইনটি রোমান সংখ্যা বা কন্টিনিউয়েশন না হয়, তবেই নতুন কোয়েশ্চেন ফ্ল্যাশ হবে
+      if (!isStemContinuation) {
+        flush();
+        if (!PASSAGE.test(line) && !line.includes('নং')) {
+          pending = '';
+        }
+        cur = blank(line);
+      } else if (cur) {
+        cur.question = cur.question ? cur.question + ' \n ' + line : line;
       }
-      cur = blank(line);
     }
   }
 
