@@ -45,39 +45,39 @@ function ommlToLatex(xml) {
     prev = s;
 
     s = s.replace(
-      /<m:f(?:\s[^>]*)?>(?:\s|<m:fPr[\s\S]*?<\/m:fPr>|<m:fPr[^>]*\/>)*<m:num(?:\s[^>]*)?>([\s\S]*?)<\/m:num>(?:\s|<[^>]+>)*<m:den(?:\s[^>]*)?>([\s\S]*?)<\/m:den>[\s\S]*?<\/m:f>/g,
-      (_, num, den) => `\\frac{${ommlToLatex(num)}}{${ommlToLatex(den)}}`
+      		/<m:f(?:\s[^>]*)?>(?:\s|<m:fPr[\s\S]*?<\/m:fPr>|<m:fPr[^>]*\/>)*<m:num(?:\s[^>]*)?>([\s\S]*?)<\/m:num>(?:\s|<[^>]+>)*<m:den(?:\s[^>]*)?>([\s\S]*?)<\/m:den>[\s\S]*?<\/m:f>/g,
+      		(_, num, den) => `\\frac{${ommlToLatex(num)}}{${ommlToLatex(den)}}`
     );
 
     s = s.replace(
-      /<m:rad(?:\s[^>]*)?>(?:\s|<m:radPr[\s\S]*?<\/m:radPr>|<m:radPr[^>]*\/>)*(?:<m:deg(?:\s[^>]*)?>([\s\S]*?)<\/m:deg>|<m:deg(?:\s[^>]*)?\/>)(?:\s|<[^>]+>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>[\s\S]*?<\/m:rad>/g,
-      (_, deg = '', body) => {
+      		/<m:rad(?:\s[^>]*)?>(?:\s|<m:radPr[\s\S]*?<\/m:radPr>|<m:radPr[^>]*\/>)*(?:<m:deg(?:\s[^>]*)?>([\s\S]*?)<\/m:deg>|<m:deg(?:\s[^>]*)?\/>)(?:\s|<[^>]+>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>[\s\S]*?<\/m:rad>/g,
+      		(_, deg = '', body) => {
         const d = cleanOmmlPart(deg);
         return d ? `\\sqrt[${d}]{${ommlToLatex(body)}}` : `\\sqrt{${ommlToLatex(body)}}`;
-      }
+      		}
     );
 
     s = s.replace(
-      /<m:sSup(?:\s[^>]*)?>(?:\s|<m:sSupPr[\s\S]*?<\/m:sSupPr>|<m:sSupPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sup(?:\s[^>]*)?>([\s\S]*?)<\/m:sup>[\s\S]*?<\/m:sSup>/g,
-      (_, base, exp) => `${ommlToLatex(base)}^{${ommlToLatex(exp)}}`
+      		/<m:sSup(?:\s[^>]*)?>(?:\s|<m:sSupPr[\s\S]*?<\/m:sSupPr>|<m:sSupPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sup(?:\s[^>]*)?>([\s\S]*?)<\/m:sup>[\s\S]*?<\/m:sSup>/g,
+      		(_, base, exp) => `${ommlToLatex(base)}^{${ommlToLatex(exp)}}`
     );
 
     s = s.replace(
-      /<m:sSub(?:\s[^>]*)?>(?:\s|<m:sSubPr[\s\S]*?<\/m:sSubPr>|<m:sSubPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sub(?:\s[^>]*)?>([\s\S]*?)<\/m:sub>[\s\S]*?<\/m:sSub>/g,
-      (_, base, sub) => `${ommlToLatex(base)}_{${ommlToLatex(sub)}}`
+      		/<m:sSub(?:\s[^>]*)?>(?:\s|<m:sSubPr[\s\S]*?<\/m:sSubPr>|<m:sSubPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sub(?:\s[^>]*)?>([\s\S]*?)<\/m:sub>[\s\S]*?<\/m:sSub>/g,
+      		(_, base, sub) => `${ommlToLatex(base)}_{${ommlToLatex(sub)}}`
     );
 
     s = s.replace(
-      /<m:sSubSup(?:\s[^>]*)?>(?:\s|<m:sSubSupPr[\s\S]*?<\/m:sSubSupPr>|<m:sSubSupPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sub(?:\s[^>]*)?>([\s\S]*?)<\/m:sub>(?:\s|<[^>]+>)*<m:sup(?:\s[^>]*)?>([\s\S]*?)<\/m:sup>[\s\S]*?<\/m:sSubSup>/g,
-      (_, base, sub, sup) => `${ommlToLatex(base)}_{${ommlToLatex(sub)}}^{${ommlToLatex(sup)}}`
+      		/<m:sSubSup(?:\s[^>]*)?>(?:\s|<m:sSubSupPr[\s\S]*?<\/m:sSubSupPr>|<m:sSubSupPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sub(?:\s[^>]*)?>([\s\S]*?)<\/m:sub>(?:\s|<[^>]+>)*<m:sup(?:\s[^>]*)?>([\s\S]*?)<\/m:sup>[\s\S]*?<\/m:sSubSup>/g,
+      		(_, base, sub, sup) => `${ommlToLatex(base)}_{${ommlToLatex(sub)}}^{${ommlToLatex(sup)}}`
     );
 
     s = s.replace(
-      /<m:d(?:\s[^>]*)?>([\s\S]*?)<\/m:d>/g,
-      (_, inner) => {
+      		/<m:d(?:\s[^>]*)?>([\s\S]*?)<\/m:d>/g,
+      		(_, inner) => {
         const e = inner.match(/<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>/);
         return `(${ommlToLatex(e ? e[1] : inner)})`;
-      }
+      		}
     );
 
     s = s.replace(/<m:acc(?:\s[^>]*)?>([\s\S]*?)<\/m:acc>/g, (_, inner) => {
@@ -193,7 +193,7 @@ function getCorrect(line) {
   return m ? normLetter(m[1]) : null;
 }
 
-// ─── PARSER WITH SMART PASSAGE AUTO-RESET ───
+// ─── PARSER WITH FIXED MULTI-PART QUESTION BUG ───
 function parseParagraphsToMcqs(lineData) {
   const mcqs = [];
   let cur = null;
@@ -224,15 +224,17 @@ function parseParagraphsToMcqs(lineData) {
     }
 
     // 2) NUMBERED question start
-    const numberedByStyle = !!obj.isNumbered && !getOptionLetter(line);
-    const numberedByText = NUMQ.test(line) && !ROMAN.test(line);
+    // "নিচের কোনটি সঠিক" বা "কোনটি সঠিক" থাকলে তাকে নতুন প্রশ্নের স্টার্ট হিসেবে গণ্য করা যাবে না।
+    const isStemContinuation = line.includes('কোনটি সঠিক') || line.includes('নিচের কোনটি');
+    const numberedByStyle = !!obj.isNumbered && !getOptionLetter(line) && !isStemContinuation;
+    const numberedByText = NUMQ.test(line) && !ROMAN.test(line) && !isStemContinuation;
+    
     if (numberedByStyle || numberedByText) {
       let q = numberedByText ? line.replace(NUMQ, '').replace(/^[:।.\-\s]+/, '').trim() : line;
       if (!q) q = line;
       
       flush();
       
-      // Smart Reset: নতুন প্রশ্নে যদি উদ্দীপকের কোনো লক্ষন না থাকে, তবে মেমোরি ক্লিয়ার করা হয়
       if (!PASSAGE.test(line) && !line.includes('নং')) {
         pending = ''; 
       }
@@ -275,7 +277,7 @@ function parseParagraphsToMcqs(lineData) {
       continue;
     }
 
-    // 6) continuation of the current question stem (roman indices, etc.)
+    // 6) continuation of the current question stem (roman indices, "নিচের কোনটি সঠিক?" text etc.)
     if (cur && !hasOpts(cur)) {
       cur.question = cur.question ? cur.question + ' ' + line : line;
       continue;
@@ -284,7 +286,7 @@ function parseParagraphsToMcqs(lineData) {
     // 7) fallback — orphan line handling
     if (!hasOpts(cur) && !inPassage) {
       flush();
-      if (!PASSAGE.test(line) && !line.includes('নং')) {
+      if (!PASSAGE.test(line) && !line.includes('নং') && !isStemContinuation) {
         pending = '';
       }
       cur = blank(line);
