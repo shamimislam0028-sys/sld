@@ -161,7 +161,7 @@ const INLINE_OPT = /[(\[]?([A-Da-dক-ঘ১-৪])\s*[.)\]\u0964\-]\s+/g;
 const ANS = /^(?:Correct\s*Option|Correct|Answer|Ans|উত্তর|সঠিক\s*উত্তর|সঠিক)\s*[:.\-।]?\s*([A-Da-dক-ঘ১-৪])/i;
 const NUMQ = /^(?:Question\s*[\d০-৯]+|[Qq](?:\.|uestion)?\s*[\d০-৯]+|[\d০-৯]+\s*[.)\]\u0964]|\([\d০-৯]+\)|\[[\d০-৯]+\])/;
 const ROMAN = /^\s*(?:[ivxlcdm]+)\s*[.)]\s+/i;
-const PASSAGE = /(উদ্দীপক|অনুচ্ছেদ|दृश्यকল্প|উদ্ধৃত(?:াংশ)?|কবিতাংশ|চিত্র|চিত্রে|নিচের\s*|নিচের\s*.*(?:পড়|লক্ষ)|প্রশ্নের?\s*উত্তর\s*দাও)/;
+const PASSAGE = /(উদ্দীপক|অনুচ্ছেদ|দৃশ্যকল্প|উদ্ধৃত(?:াংশ)?|কবিতাংশ|চিত্র|চিত্রে|নিচের\s*|নিচের\s*.*(?:পড়|লক্ষ)|প্রশ্নের?\s*উত্তর\s*দাও)/;
 
 function getOptionLetter(line) {
   for (const L of ['A', 'B', 'C', 'D']) if (OPT[L].test(line)) return L;
@@ -193,7 +193,7 @@ function getCorrect(line) {
   return m ? normLetter(m[1]) : null;
 }
 
-// ─── UPDATED PARSER (Fixed multipage / image-based passage bugs) ───
+// ─── PARSER WITH SMART PASSAGE AUTO-RESET ───
 function parseParagraphsToMcqs(lineData) {
   const mcqs = [];
   let cur = null;
@@ -214,7 +214,7 @@ function parseParagraphsToMcqs(lineData) {
     const line = (obj.text || '').replace(/\s+/g, ' ').trim();
     if (!line) continue;
 
-    // 1) ANSWER line → close current question but KEEP passage for multi-question sets
+    // 1) ANSWER line → close current question
     const corr = getCorrect(line);
     if (corr && cur) { 
       cur.correct = corr; 
@@ -229,9 +229,16 @@ function parseParagraphsToMcqs(lineData) {
     if (numberedByStyle || numberedByText) {
       let q = numberedByText ? line.replace(NUMQ, '').replace(/^[:।.\-\s]+/, '').trim() : line;
       if (!q) q = line;
+      
       flush();
+      
+      // Smart Reset: নতুন প্রশ্নে যদি উদ্দীপকের কোনো লক্ষন না থাকে, তবে মেমোরি ক্লিয়ার করা হয়
+      if (!PASSAGE.test(line) && !line.includes('নং')) {
+        pending = ''; 
+      }
+      
       cur = blank(q);
-      inPassage = false; // Turn off passage accumulation, but keep text in memory
+      inPassage = false; 
       continue;
     }
 
@@ -277,6 +284,9 @@ function parseParagraphsToMcqs(lineData) {
     // 7) fallback — orphan line handling
     if (!hasOpts(cur) && !inPassage) {
       flush();
+      if (!PASSAGE.test(line) && !line.includes('নং')) {
+        pending = '';
+      }
       cur = blank(line);
     }
   }
