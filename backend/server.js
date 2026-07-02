@@ -117,34 +117,34 @@ function ommlToLatex(xml) {
     // Fraction  \frac{num}{den}
     s = s.replace(
       /<m:f(?:\s[^>]*)?>(?:<[^>]+>)*<m:num(?:\s[^>]*)?>([\s\S]*?)<\/m:num>(?:<[^>]+>)*<m:den(?:\s[^>]*)?>([\s\S]*?)<\/m:den>[\s\S]*?<\/m:f>/,
-      (_, n, d) => `\\frac{${clean(n)}}{${clean(d)}}`
+      (_, n, d) => `\\frac{${ommlToLatex(n)}}{${ommlToLatex(d)}}`
     );
 
     // Radical / sqrt
     s = s.replace(
-      /<m:rad(?:\s[^>]*)?>(?:<[^>]+>)*<m:deg(?:\s[^>]*)?>([\s\S]*?)<\/m:deg>(?:<[^>]+>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>[\s\S]*?<\/m:rad>/,
+      /<m:rad(?:\s[^>]*)?>(?:\s|<m:radPr[\s\S]*?<\/m:radPr>|<m:radPr[^>]*\/>)*(?:<m:deg(?:\s[^>]*)?>([\s\S]*?)<\/m:deg>|<m:deg(?:\s[^>]*)?\/>)(?:\s|<[^>]+>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>[\s\S]*?<\/m:rad>/,
       (_, deg, rad) => {
-        const d = clean(deg).trim();
-        return d ? `\\sqrt[${d}]{${clean(rad)}}` : `\\sqrt{${clean(rad)}}`;
+        const d = clean(deg || '').trim();
+        return d ? `\\sqrt[${d}]{${ommlToLatex(rad)}}` : `\\sqrt{${ommlToLatex(rad)}}`;
       }
     );
 
     // Superscript  base^{exp}
     s = s.replace(
       /<m:sSup(?:\s[^>]*)?>(?:<[^>]+>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:<[^>]+>)*<m:sup(?:\s[^>]*)?>([\s\S]*?)<\/m:sup>[\s\S]*?<\/m:sSup>/,
-      (_, base, exp) => `${clean(base)}^{${clean(exp)}}`
+      (_, base, exp) => `${ommlToLatex(base)}^{${ommlToLatex(exp)}}`
     );
 
     // Subscript  base_{sub}
     s = s.replace(
       /<m:sSub(?:\s[^>]*)?>(?:<[^>]+>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:<[^>]+>)*<m:sub(?:\s[^>]*)?>([\s\S]*?)<\/m:sub>[\s\S]*?<\/m:sSub>/,
-      (_, base, sub) => `${clean(base)}_{${clean(sub)}}`
+      (_, base, sub) => `${ommlToLatex(base)}_{${ommlToLatex(sub)}}`
     );
 
     // Sub+Superscript
     s = s.replace(
       /<m:sSubSup(?:\s[^>]*)?>(?:<[^>]+>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:<[^>]+>)*<m:sub(?:\s[^>]*)?>([\s\S]*?)<\/m:sub>(?:<[^>]+>)*<m:sup(?:\s[^>]*)?>([\s\S]*?)<\/m:sup>[\s\S]*?<\/m:sSubSup>/,
-      (_, base, sub, sup) => `${clean(base)}_{${clean(sub)}}^{${clean(sup)}}`
+      (_, base, sub, sup) => `${ommlToLatex(base)}_{${ommlToLatex(sub)}}^{${ommlToLatex(sup)}}`
     );
 
     // Delimiter (parentheses / brackets)
@@ -152,13 +152,13 @@ function ommlToLatex(xml) {
       /<m:d(?:\s[^>]*)?>([\s\S]*?)<\/m:d>/,
       (_, inner) => {
         const eMatch = inner.match(/<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>/);
-        return eMatch ? `(${clean(eMatch[1])})` : `(${clean(inner)})`;
+        return eMatch ? `(${ommlToLatex(eMatch[1])})` : `(${ommlToLatex(inner)})`;
       }
     );
 
     // Accent / overline (just keep inner)
     s = s.replace(/<m:acc(?:\s[^>]*)?>([\s\S]*?)<\/m:acc>/,
-      (_, inner) => { const e = inner.match(/<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>/); return e ? clean(e[1]) : clean(inner); }
+      (_, inner) => { const e = inner.match(/<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>/); return e ? ommlToLatex(e[1]) : ommlToLatex(inner); }
     );
 
     // Structural wrappers — strip tag, keep content
