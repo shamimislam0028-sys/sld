@@ -11,10 +11,6 @@ function decodeXml(s) {
 }
 
 // ─────────────────── Paragraph text extractor ───────────────────
-// Captures BOTH normal text (<w:t>) and math text (<m:t>) in document
-// order, splitting on soft line breaks (<w:br>). Light OMML hints make
-// fractions / roots / powers human-readable (3/5, √10, p^2) instead of
-// silently dropping math-only questions and options.
 function stripTags(s) {
   return s.replace(/<[^>]+>/g, '').trim();
 }
@@ -102,17 +98,16 @@ function getParagraphLines(pXml) {
   let currentLine = '';
   let xml = pXml.replace(/<w:tab(?:\s[^>]*)?\/?>/g, ' ');
 
-  // OMML → readable text hints
   xml = xml
-    .replace(/<\/m:num>/g, '</m:num><m:t>/</m:t>')              // fraction: num / den
-    .replace(/<m:rad(\s[^>]*)?>/g, '<m:rad$1><m:t>\u221A</m:t>') // radical: √
-    .replace(/<m:sup>/g, '<m:t>^</m:t><m:sup>')                 // superscript / power
-    .replace(/<m:sub>/g, '<m:t>_</m:t><m:sub>');                // subscript
+    .replace(/<\/m:num>/g, '</m:num><m:t>/</m:t>')
+    .replace(/<m:rad(\s[^>]*)?>/g, '<m:rad$1><m:t>\u221A</m:t>')
+    .replace(/<m:sup>/g, '<m:t>^</m:t><m:sup>')
+    .replace(/<m:sub>/g, '<m:t>_</m:t><m:sub>');
 
   const tokenRx = /<w:br\b[^>]*\/?>|<(w:t|m:t)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/g;
   let m;
   while ((m = tokenRx.exec(xml)) !== null) {
-    if (m[0].charAt(1) === 'w' && m[0].charAt(3) === 'b') { // <w:br>
+    if (m[0].charAt(1) === 'w' && m[0].charAt(3) === 'b') {
       lines.push(currentLine.trim());
       currentLine = '';
     } else {
@@ -153,12 +148,6 @@ function getParagraphLinesWithMath(pXml) {
 }
 
 // ─────────────────── MCQ parser (format-agnostic) ───────────────
-// Handles, in any combination:
-//   • question numbering: Word auto-number (numPr) OR typed "১।" "1." "1)" "(1)" "[1]" "Q1" "Question 1"
-//   • options: Latin A–D, Bengali ক/খ/গ/ঘ, Bengali digits ১–৪ — one per line OR several inline
-//   • answers: "উত্তর", "সঠিক উত্তর", "Answer", "Ans", "Correct" → letter in any of the above scripts
-//   • passages / উদ্দীপক stimulus blocks shared by following questions
-//   • roman sub-items i. ii. iii. kept inside the question stem
 const LETTER_MAP = { 'ক': 'A', '১': 'A', 'খ': 'B', '২': 'B', 'গ': 'C', '৩': 'C', 'ঘ': 'D', '৪': 'D' };
 function normLetter(ch) { return LETTER_MAP[ch] || ch.toUpperCase(); }
 
@@ -172,7 +161,7 @@ const INLINE_OPT = /[(\[]?([A-Da-dক-ঘ১-৪])\s*[.)\]\u0964\-]\s+/g;
 const ANS = /^(?:Correct\s*Option|Correct|Answer|Ans|উত্তর|সঠিক\s*উত্তর|সঠিক)\s*[:.\-।]?\s*([A-Da-dক-ঘ১-৪])/i;
 const NUMQ = /^(?:Question\s*[\d০-৯]+|[Qq](?:\.|uestion)?\s*[\d০-৯]+|[\d০-৯]+\s*[.)\]\u0964]|\([\d০-৯]+\)|\[[\d০-৯]+\])/;
 const ROMAN = /^\s*(?:[ivxlcdm]+)\s*[.)]\s+/i;
-const PASSAGE = /(উদ্দীপক|অনুচ্ছেদ|দৃশ্যকল্প|উদ্ধৃত(?:াংশ)?|কবিতাংশ|চিত্র|চিত্রে|নিচের\s*|নিচের\s*.*(?:পড়|লক্ষ)|প্রশ্নের?\s*উত্তর\s*দাও)/;
+const PASSAGE = /(উদ্দীপক|অনুচ্ছেদ|दृश्यকল্প|উদ্ধৃত(?:াংশ)?|কবিতাংশ|চিত্র|চিত্রে|নিচের\s*|নিচের\s*.*(?:পড়|লক্ষ)|প্রশ্নের?\s*উত্তর\s*দাও)/;
 
 function getOptionLetter(line) {
   for (const L of ['A', 'B', 'C', 'D']) if (OPT[L].test(line)) return L;
@@ -198,30 +187,43 @@ function parseInlineOptions(line) {
   }
   return Object.keys(parsed).length >= 2 ? parsed : null;
 }
+
 function getCorrect(line) {
   const m = line.match(ANS);
   return m ? normLetter(m[1]) : null;
 }
 
+// ─── UPDATED PARSER (Fixed multipage / image-based passage bugs) ───
 function parseParagraphsToMcqs(lineData) {
   const mcqs = [];
   let cur = null;
-  let pending = '';      // accumulated passage / উদ্দীপক text
+  let pending = '';      // accumulated passage text
   let inPassage = false;
 
   const blank = (q) => ({ passage: pending, question: q || '', optionA: '', optionB: '', optionC: '', optionD: '', correct: 'A' });
   const hasOpts = (m) => !!(m && (m.optionA || m.optionB || m.optionC || m.optionD));
-  const flush = () => { if (cur && cur.question && hasOpts(cur)) mcqs.push(cur); };
+  
+  const flush = () => { 
+    if (cur && cur.question && hasOpts(cur)) {
+      if (!cur.passage && pending) cur.passage = pending;
+      mcqs.push(cur); 
+    }
+  };
 
   for (const obj of lineData) {
     const line = (obj.text || '').replace(/\s+/g, ' ').trim();
     if (!line) continue;
 
-    // 1) ANSWER line → close the current question
+    // 1) ANSWER line → close current question but KEEP passage for multi-question sets
     const corr = getCorrect(line);
-    if (corr && cur) { cur.correct = corr; flush(); cur = null; pending = ''; inPassage = false; continue; }
+    if (corr && cur) { 
+      cur.correct = corr; 
+      flush(); 
+      cur = null; 
+      continue; 
+    }
 
-    // 2) NUMBERED question start (Word auto-number OR typed number; roman i./ii. excluded)
+    // 2) NUMBERED question start
     const numberedByStyle = !!obj.isNumbered && !getOptionLetter(line);
     const numberedByText = NUMQ.test(line) && !ROMAN.test(line);
     if (numberedByStyle || numberedByText) {
@@ -229,11 +231,11 @@ function parseParagraphsToMcqs(lineData) {
       if (!q) q = line;
       flush();
       cur = blank(q);
-      pending = ''; inPassage = false;
+      inPassage = false; // Turn off passage accumulation, but keep text in memory
       continue;
     }
 
-    // 3) INLINE options (several markers on one line)
+    // 3) INLINE options
     const inl = cur ? parseInlineOptions(line) : null;
     if (inl) {
       if (inl.A) cur.optionA = inl.A;
@@ -245,28 +247,38 @@ function parseParagraphsToMcqs(lineData) {
 
     // 4) SINGLE option per line
     const optL = cur ? getOptionLetter(line) : null;
-    if (optL) { cur['option' + optL] = stripOpt(line, optL); inPassage = false; continue; }
-
-    // 5) PASSAGE / stimulus intro (not a question, not numbered, before options)
-    if (PASSAGE.test(line) && !line.endsWith('?') && !obj.isNumbered && !hasOpts(cur)) {
-      pending = pending ? pending + ' ' + line : line;
-      inPassage = true; continue;
+    if (optL) { 
+      cur['option' + optL] = stripOpt(line, optL); 
+      inPassage = false; 
+      continue; 
     }
-    if (inPassage && !obj.isNumbered) {
+
+    // 5) PASSAGE / stimulus intro triggers
+    if (PASSAGE.test(line) && !line.endsWith('?') && !obj.isNumbered && !hasOpts(cur)) {
+      pending = line;
+      inPassage = true; 
+      flush(); 
+      cur = null;
+      continue;
+    }
+    
+    // Multi-line passage continuation
+    if (inPassage && !obj.isNumbered && !NUMQ.test(line) && !getOptionLetter(line)) {
       pending = pending ? pending + ' ' + line : line;
       continue;
     }
 
-    // 6) continuation of the current question stem (roman items, "নিচের কোনটি সঠিক?", wrapped text)
+    // 6) continuation of the current question stem (roman indices, etc.)
     if (cur && !hasOpts(cur)) {
       cur.question = cur.question ? cur.question + ' ' + line : line;
       continue;
     }
 
-    // 7) fallback — an orphan line starts a new (un-numbered) question
-    flush();
-    cur = blank(line);
-    pending = '';
+    // 7) fallback — orphan line handling
+    if (!hasOpts(cur) && !inPassage) {
+      flush();
+      cur = blank(line);
+    }
   }
 
   flush();
