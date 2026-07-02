@@ -21,6 +21,7 @@ function cleanOmmlPart(s) {
 
 function ommlToLatex(xml) {
   let s = xml;
+
   const metaTags = [
     'm:rPr', 'm:sPr', 'm:fPr', 'm:radPr', 'm:dPr', 'm:naryPr',
     'm:accPr', 'm:groupChrPr', 'm:barPr', 'm:phantPr', 'w:rPr', 'w:pPr',
@@ -42,10 +43,12 @@ function ommlToLatex(xml) {
   let prev = '';
   for (let iter = 0; iter < 60 && prev !== s; iter++) {
     prev = s;
+
     s = s.replace(
       /<m:f(?:\s[^>]*)?>(?:\s|<m:fPr[\s\S]*?<\/m:fPr>|<m:fPr[^>]*\/>)*<m:num(?:\s[^>]*)?>([\s\S]*?)<\/m:num>(?:\s|<[^>]+>)*<m:den(?:\s[^>]*)?>([\s\S]*?)<\/m:den>[\s\S]*?<\/m:f>/g,
       (_, num, den) => `\\frac{${ommlToLatex(num)}}{${ommlToLatex(den)}}`
     );
+
     s = s.replace(
       /<m:rad(?:\s[^>]*)?>(?:\s|<m:radPr[\s\S]*?<\/m:radPr>|<m:radPr[^>]*\/>)*(?:<m:deg(?:\s[^>]*)?>([\s\S]*?)<\/m:deg>|<m:deg(?:\s[^>]*)?\/>)(?:\s|<[^>]+>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>[\s\S]*?<\/m:rad>/g,
       (_, deg = '', body) => {
@@ -53,18 +56,22 @@ function ommlToLatex(xml) {
         return d ? `\\sqrt[${d}]{${ommlToLatex(body)}}` : `\\sqrt{${ommlToLatex(body)}}`;
       }
     );
+
     s = s.replace(
       /<m:sSup(?:\s[^>]*)?>(?:\s|<m:sSupPr[\s\S]*?<\/m:sSupPr>|<m:sSupPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sup(?:\s[^>]*)?>([\s\S]*?)<\/m:sup>[\s\S]*?<\/m:sSup>/g,
       (_, base, exp) => `${ommlToLatex(base)}^{${ommlToLatex(exp)}}`
     );
+
     s = s.replace(
       /<m:sSub(?:\s[^>]*)?>(?:\s|<m:sSubPr[\s\S]*?<\/m:sSubPr>|<m:sSubPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sub(?:\s[^>]*)?>([\s\S]*?)<\/m:sub>[\s\S]*?<\/m:sSub>/g,
       (_, base, sub) => `${ommlToLatex(base)}_{${ommlToLatex(sub)}}`
     );
+
     s = s.replace(
       /<m:sSubSup(?:\s[^>]*)?>(?:\s|<m:sSubSupPr[\s\S]*?<\/m:sSubSupPr>|<m:sSubSupPr[^>]*\/>)*<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>(?:\s|<[^>]+>)*<m:sub(?:\s[^>]*)?>([\s\S]*?)<\/m:sub>(?:\s|<[^>]+>)*<m:sup(?:\s[^>]*)?>([\s\S]*?)<\/m:sup>[\s\S]*?<\/m:sSubSup>/g,
       (_, base, sub, sup) => `${ommlToLatex(base)}_{${ommlToLatex(sub)}}^{${ommlToLatex(sup)}}`
     );
+
     s = s.replace(
       /<m:d(?:\s[^>]*)?>([\s\S]*?)<\/m:d>/g,
       (_, inner) => {
@@ -72,15 +79,43 @@ function ommlToLatex(xml) {
         return `(${ommlToLatex(e ? e[1] : inner)})`;
       }
     );
+
     s = s.replace(/<m:acc(?:\s[^>]*)?>([\s\S]*?)<\/m:acc>/g, (_, inner) => {
-      const e = inner.match(/<m:e(?:\s[^>]*)?>([\s\S]*?)<\/e>/);
+      const e = inner.match(/<m:e(?:\s[^>]*)?>([\s\S]*?)<\/m:e>/);
       return ommlToLatex(e ? e[1] : inner);
     });
+
     for (const tag of ['m:e', 'm:num', 'm:den', 'm:sub', 'm:sup', 'm:deg', 'm:oMath', 'm:oMathPara', 'm:mr']) {
       s = s.replace(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, 'g'), '$1');
     }
   }
+
   return cleanOmmlPart(s);
+}
+
+function getParagraphLines(pXml) {
+  const lines = [];
+  let currentLine = '';
+  let xml = pXml.replace(/<w:tab(?:\s[^>]*)?\/?>/g, ' ');
+
+  xml = xml
+    .replace(/<\/m:num>/g, '</m:num><m:t>/</m:t>')
+    .replace(/<m:rad(\s[^>]*)?>/g, '<m:rad$1><m:t>\u221A</m:t>')
+    .replace(/<m:sup>/g, '<m:t>^</m:t><m:sup>')
+    .replace(/<m:sub>/g, '<m:t>_</m:t><m:sub>');
+
+  const tokenRx = /<w:br\b[^>]*\/?>|<(w:t|m:t)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/g;
+  let m;
+  while ((m = tokenRx.exec(xml)) !== null) {
+    if (m[0].charAt(1) === 'w' && m[0].charAt(3) === 'b') {
+      lines.push(currentLine.trim());
+      currentLine = '';
+    } else {
+      currentLine += decodeXml(m[2] || '');
+    }
+  }
+  if (currentLine.trim()) lines.push(currentLine.trim());
+  return lines.map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
 }
 
 function getParagraphLinesWithMath(pXml) {
@@ -109,26 +144,24 @@ function getParagraphLinesWithMath(pXml) {
     }
   }
   if (currentLine.trim()) lines.push(currentLine.trim());
-  
-  // স্পেস বাগ ফিক্স: ৩-৪টি অতিরিক্ত স্পেস থাকলে সেটিকে ১টি স্ট্যান্ডার্ড স্পেসে রূপান্তর করবে
   return lines.map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
 }
 
-// ─────────────────── Smart Engine For All Docx ───────────────────
+// ─────────────────── MCQ parser (format-agnostic) ───────────────
 const LETTER_MAP = { 'ক': 'A', '১': 'A', 'খ': 'B', '২': 'B', 'গ': 'C', '৩': 'C', 'ঘ': 'D', '৪': 'D' };
 function normLetter(ch) { return LETTER_MAP[ch] || ch.toUpperCase(); }
 
 const OPT = {
-  A: /^[(\[]?\s*[Aaক১]\s*[.)\]\u0964\-।]\s*/,
-  B: /^[(\[]?\s*[Bbখ২]\s*[.)\]\u0964\-।]\s*/,
-  C: /^[(\[]?\s*[Ccগ৩]\s*[.)\]\u0964\-]\s*/,
-  D: /^[(\[]?\s*[Ddঘ৪]\s*[.)\]\u0964\-]\s*/,
+  A: /^[(\[]?\s*[Aaক১]\s*[.)\]\u0964\-]\s+/,
+  B: /^[(\[]?\s*[Bbখ২]\s*[.)\]\u0964\-]\s+/,
+  C: /^[(\[]?\s*[Ccগ৩]\s*[.)\]\u0964\-]\s+/,
+  D: /^[(\[]?\s*[Ddঘ৪]\s*[.)\]\u0964\-]\s+/,
 };
-const INLINE_OPT = /[(\[]?([A-Da-dক-ঘ১-৪])\s*[.)\]\u0964\-।]\s+/g;
-const ANS = /^(?:Correct\s*Option|Correct|Answer|Ans|উত্তর|সঠিক\s*উত্তর|সঠিক)\s*[:.\-।\s]*([A-Da-dক-ঘ১-৪])/i;
-const NUMQ = /^(?:Question\s*[\d০-৯]+|[Qq](?:\.|uestion)?\s*[\d০-৯]+|[\d০-৯]+\s*[.)\]\u0964।\-]\s*|\([\d০-৯]+\)|\[[\d০-৯]+\])/;
-const ROMAN = /^(?:\s*|[(ঁঁ]*)([ivxlcdm]+|[i০-৯]+)\s*[.)\]\u0964\-।]/i;
-const PASSAGE = /(উদ্দীপক|অনুচ্ছেদ|দৃশ্যকল্প|উদ্ধৃত(?:াংশ)?|কবিতাংশ|চিত্র|চিত্রে|নিচের\s*|নিচের\s*.*(?:পড়|লক্ষ|পড়ো)|প্রশ্নের?\s*উত্তর\s*দাও)/;
+const INLINE_OPT = /[(\[]?([A-Da-dক-ঘ১-৪])\s*[.)\]\u0964\-]\s+/g;
+const ANS = /^(?:Correct\s*Option|Correct|Answer|Ans|উত্তর|সঠিক\s*উত্তর|সঠিক)\s*[:.\-।]?\s*([A-Da-dক-ঘ১-৪])/i;
+const NUMQ = /^(?:Question\s*[\d০-৯]+|[Qq](?:\.|uestion)?\s*[\d০-৯]+|[\d০-৯]+\s*[.)\]\u0964]|\([\d০-৯]+\)|\[[\d০-৯]+\])/;
+const ROMAN = /^(?:\s*|[(ঁঁ]*)([ivxlcdm]+|[i০-৯]+)\s*[.)\]\u0964\-]/i; // i. ii. iii. matching
+const PASSAGE = /(উদ্দীপক|অনুচ্ছেদ|দৃশ্যকল্প|উদ্ধৃত(?:াংশ)?|কবিতাংশ|চিত্র|চিত্রে|নিচের\s*|নিচের\s*.*(?:পড়|লক্ষ)|প্রশ্নের?\s*উত্তর\s*দাও)/;
 
 function getOptionLetter(line) {
   for (const L of ['A', 'B', 'C', 'D']) if (OPT[L].test(line)) return L;
@@ -160,103 +193,112 @@ function getCorrect(line) {
   return m ? normLetter(m[1]) : null;
 }
 
+// ─── UPDATED PARSER WITH MULTI-LINE STEM & ROMAN INDEX SUPPORT ───
 function parseParagraphsToMcqs(lineData) {
   const mcqs = [];
   let cur = null;
-  let activePassage = ''; 
+  let pending = '';      // accumulated passage text
+  let inPassage = false;
 
-  const flushCurrent = () => {
-    if (cur && cur.question && (cur.optionA || cur.optionB || cur.optionC || cur.optionD)) {
-      if (!cur.passage && activePassage) {
-        cur.passage = activePassage;
-      }
-      mcqs.push(cur);
+  const blank = (q) => ({ passage: pending, question: q || '', optionA: '', optionB: '', optionC: '', optionD: '', correct: 'A' });
+  const hasOpts = (m) => !!(m && (m.optionA || m.optionB || m.optionC || m.optionD));
+  
+  const flush = () => { 
+    if (cur && cur.question && hasOpts(cur)) {
+      if (!cur.passage && pending) cur.passage = pending;
+      mcqs.push(cur); 
     }
-    cur = null;
   };
 
-  for (let i = 0; i < lineData.length; i++) {
-    const obj = lineData[i];
+  for (const obj of lineData) {
     const line = (obj.text || '').replace(/\s+/g, ' ').trim();
     if (!line) continue;
 
-    // ১) Answer লাইন চেক
+    // 1) ANSWER line → close current question
     const corr = getCorrect(line);
-    if (corr) {
-      if (cur) {
-        cur.correct = corr;
-        flushCurrent();
-      }
-      continue;
+    if (corr && cur) { 
+      cur.correct = corr; 
+      flush(); 
+      cur = null; 
+      continue; 
     }
 
-    // ২) Option লাইন চেক (একক বা ইনলাইন অপশন)
-    const inlineOpts = parseInlineOptions(line);
-    const singleOptLetter = getOptionLetter(line);
-
-    if (inlineOpts || singleOptLetter) {
-      if (!cur) {
-        cur = { passage: activePassage, question: 'প্রশ্ন পাওয়া যায়নি', optionA: '', optionB: '', optionC: '', optionD: '', correct: 'A' };
-      }
-      if (inlineOpts) {
-        if (inlineOpts.A) cur.optionA = inlineOpts.A;
-        if (inlineOpts.B) cur.optionB = inlineOpts.B;
-        if (inlineOpts.C) cur.optionC = inlineOpts.C;
-        if (inlineOpts.D) cur.optionD = inlineOpts.D;
-      } else {
-        cur['option' + singleOptLetter] = stripOpt(line, singleOptLetter);
-      }
-      continue;
-    }
-
-    // ৩) উদ্দীপক (Passage) চেক
-    const isRealPassage = PASSAGE.test(line) && !line.endsWith('?') && !line.includes('কোনটি সঠিক') && !line.includes('কোনটি') && !obj.isNumbered;
-    if (isRealPassage) {
-      flushCurrent();
-      activePassage = line;
+    // 2) NUMBERED question start
+    const isStemContinuation = line.includes('কোনটি সঠিক') || line.includes('নিচের কোনটি') || ROMAN.test(line);
+    const numberedByStyle = !!obj.isNumbered && !getOptionLetter(line) && !isStemContinuation;
+    const numberedByText = NUMQ.test(line) && !ROMAN.test(line) && !isStemContinuation;
+    
+    if (numberedByStyle || numberedByText) {
+      let q = numberedByText ? line.replace(NUMQ, '').replace(/^[:।.\-\s]+/, '').trim() : line;
+      if (!q) q = line;
       
-      while (i + 1 < lineData.length) {
-        const nextLine = (lineData[i + 1].text || '').replace(/\s+/g, ' ').trim();
-        if (!nextLine || NUMQ.test(nextLine) || lineData[i + 1].isNumbered || getOptionLetter(nextLine) || parseInlineOptions(nextLine) || ANS.test(nextLine)) {
-          break;
+      flush();
+      
+      if (!PASSAGE.test(line) && !line.includes('নং')) {
+        pending = ''; 
+      }
+      
+      cur = blank(q);
+      inPassage = false; 
+      continue;
+    }
+
+    // 3) INLINE options
+    const inl = cur ? parseInlineOptions(line) : null;
+    if (inl) {
+      if (inl.A) cur.optionA = inl.A;
+      if (inl.B) cur.optionB = inl.B;
+      if (inl.C) cur.optionC = inl.C;
+      if (inl.D) cur.optionD = inl.D;
+      inPassage = false; continue;
+    }
+
+    // 4) SINGLE option per line
+    const optL = cur ? getOptionLetter(line) : null;
+    if (optL) { 
+      cur['option' + optL] = stripOpt(line, optL); 
+      inPassage = false; 
+      continue; 
+    }
+
+    // 5) PASSAGE / stimulus intro triggers
+    if (PASSAGE.test(line) && !line.endsWith('?') && !obj.isNumbered && !hasOpts(cur)) {
+      pending = line;
+      inPassage = true; 
+      flush(); 
+      cur = null;
+      continue;
+    }
+    
+    // Multi-line passage continuation
+    if (inPassage && !obj.isNumbered && !NUMQ.test(line) && !getOptionLetter(line)) {
+      pending = pending ? pending + ' ' + line : line;
+      continue;
+    }
+
+    // 6) Continuation of the current question stem (রোমান সংখ্যা এবং "নিচের কোনটি সঠিক" সব একসাথে জুড়বে)
+    if (cur && !hasOpts(cur)) {
+      cur.question = cur.question ? cur.question + ' \n ' + line : line;
+      continue;
+    }
+
+    // 7) fallback — orphan line handling
+    if (!hasOpts(cur) && !inPassage) {
+      // যদি লাইনটি রোমান সংখ্যা বা কন্টিনিউয়েশন না হয়, তবেই নতুন কোয়েশ্চেন ফ্ল্যাশ হবে
+      if (!isStemContinuation) {
+        flush();
+        if (!PASSAGE.test(line) && !line.includes('নং')) {
+          pending = '';
         }
-        activePassage += '\n' + nextLine; // উদ্দীপকেও লাইন ব্রেক বজায় থাকবে
-        i++;
+        cur = blank(line);
+      } else if (cur) {
+        cur.question = cur.question ? cur.question + ' \n ' + line : line;
       }
-      continue;
-    }
-
-    // ৪) নতুন প্রশ্ন (Numbered Question) শুরুর ডিটেকশন
-    const isContinuation = line.includes('কোনটি সঠিক') || line.includes('নিচের কোনটি') || ROMAN.test(line);
-    const isNewQuestionStart = (NUMQ.test(line) || obj.isNumbered) && !isContinuation;
-
-    if (isNewQuestionStart) {
-      flushCurrent();
-
-      if (!line.includes('উদ্দীপক') && !line.includes('চিত্র') && !line.includes('নং')) {
-        activePassage = '';
-      }
-
-      let cleanedQuestion = NUMQ.test(line) ? line.replace(NUMQ, '').replace(/^[:।.\-\s]+/, '').trim() : line;
-      if (!cleanedQuestion) cleanedQuestion = line;
-
-      cur = { passage: activePassage, question: cleanedQuestion, optionA: '', optionB: '', optionC: '', optionD: '', correct: 'A' };
-      continue;
-    }
-
-    // ৫) প্রশ্নের ধারাবাহিক অংশ (রোমান সংখ্যা এবং 'নিচের কোনটি সঠিক?' টেক্সটকে নিখুঁতভাবে নিচে নিচে সাজাবে)
-    if (cur) {
-      cur.question = cur.question ? cur.question + '\n' + line : line; // এখানে \n দেওয়া হয়েছে যাতে ফ্রন্টএন্ডে নিচে নিচে দেখায়
-    } else {
-      if (!isContinuation) {
-        activePassage = ''; 
-      }
-      cur = { passage: activePassage, question: line, optionA: '', optionB: '', optionC: '', optionD: '', correct: 'A' };
     }
   }
 
-  flushCurrent();
-  return mcqs.filter(m => m.question && (m.optionA || m.optionB || m.optionC || m.optionD));
+  flush();
+  return mcqs.filter(m => m.question && hasOpts(m));
 }
 
 // ─────────────────── Vercel serverless handler ──────────────────
@@ -307,7 +349,7 @@ module.exports = async function handler(req, res) {
     if (!lineData.length) return res.status(422).json({ error: 'No text found in DOCX.' });
 
     const mcqs = parseParagraphsToMcqs(lineData);
-    if (!mcqs.length) return res.status(422).json({ error: 'No MCQs found.' });
+    if (!mcqs.length) return res.status(422).json({ error: 'No MCQs found. Make sure each question is followed by options A. B. C. D. and a correct answer.' });
 
     return res.status(200).json({ mcqs });
   } catch (err) {
@@ -315,3 +357,8 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: err.message || 'DOCX parsing failed.' });
   }
 };
+
+// Exported for local reuse / testing
+module.exports.getParagraphLines = getParagraphLinesWithMath;
+module.exports.ommlToLatex = ommlToLatex;
+module.exports.parseParagraphsToMcqs = parseParagraphsToMcqs;
