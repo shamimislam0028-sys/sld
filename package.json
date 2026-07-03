@@ -1,0 +1,29 @@
+{
+  "name": "mcq-pptx-generator",
+  "version": "1.0.0",
+  "description": "Generate MCQ PowerPoint decks by reusing an existing template verbatim.",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "start:backend": "npm start --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build": "npm run build --workspace=frontend"
+  },
+  "dependencies": {
+    "@google/genai": "^2.10.0",
+    "busboy": "^1.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jimp": "^0.22.12",
+    "jszip": "^3.10.1",
+    "mathml2omml": "^0.5.0",
+    "multer": "^1.4.5-lts.1",
+    "temml": "^0.13.3"
+  },
+  "license": "MIT"
+}
