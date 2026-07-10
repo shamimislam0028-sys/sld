@@ -138,28 +138,12 @@ function autofitScale(textLen, isQuestion) {
 }
 
 /**
-<<<<<<< HEAD
  * Auto-fit like right.pptx: DIRECTLY shrink every run's font size (the sz
  * attribute) so the smaller text is honored by every renderer, and turn the
  * box to <a:noAutofit/> so nothing fights the explicit size. (A normAutofit
  * fontScale was not being applied by the viewer — that was wrong.pptx.)
  */
 function setAutofitTag(txBody, tag) {
-=======
- * Force "shrink text on overflow" with an EXPLICIT fontScale so every renderer
- * (PowerPoint, LibreOffice, viewers) actually shrinks a long question / option
- * to fit its fixed box — a bare <a:normAutofit/> is often ignored until PP
- * recomputes it, which is why overflow was still showing.
- */
-function ensureNormAutofit(txBody, newText, isQuestion) {
-  const s = autofitScale(effectiveLen(newText), isQuestion);
-  const fontScale = Math.round(s * 100000);
-  const lnSpc = Math.round((1 - s) * 20000); // up to 20% line-spacing reduction
-  const tag = s < 1
-    ? `<a:normAutofit fontScale="${fontScale}" lnSpcReduction="${lnSpc}"/>`
-    : `<a:normAutofit/>`;
-
->>>>>>> 005439d1f2953e793ff99d23b94c556a2d53823d
   if (/<a:normAutofit\b[^>]*\/>/.test(txBody)) return txBody.replace(/<a:normAutofit\b[^>]*\/>/, tag);
   if (/<a:noAutofit\s*\/>/.test(txBody)) return txBody.replace(/<a:noAutofit\s*\/>/, tag);
   if (/<a:spAutoFit\s*\/>/.test(txBody)) return txBody.replace(/<a:spAutoFit\s*\/>/, tag);
@@ -168,7 +152,6 @@ function ensureNormAutofit(txBody, newText, isQuestion) {
   return txBody;
 }
 
-<<<<<<< HEAD
 function ensureNormAutofit(txBody, newText, isQuestion) {
   const scale = autofitScale(effectiveLen(newText), isQuestion);
   if (scale >= 1) return txBody; // fits at full size — leave the box untouched
@@ -204,8 +187,6 @@ async function stripEmbeddedFonts(zip) {
   }
 }
 
-=======
->>>>>>> 005439d1f2953e793ff99d23b94c556a2d53823d
 function escapeXml(s) {
   return String(s)
     .replace(/&/g, '&amp;')
@@ -746,14 +727,11 @@ async function generatePptx(templateBuffer, mcqs, opts = {}) {
   zip.file('ppt/_rels/presentation.xml.rels', state.presRels);
   zip.file('[Content_Types].xml', state.contentTypes);
 
-<<<<<<< HEAD
   // Drop embedded fonts (~2.9 MB in the template). They pushed large decks past
   // Vercel's 4.5 MB response limit → "413 FUNCTION_PAYLOAD_TOO_LARGE". Bengali
   // text falls back to the viewer's installed Hind Siliguri / system font.
   await stripEmbeddedFonts(zip);
 
-=======
->>>>>>> 005439d1f2953e793ff99d23b94c556a2d53823d
   return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
 }
 
